@@ -1,427 +1,267 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workout Logger with Tabs</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            padding: 20px;
-            background-color: #f4f7f6;
-            color: #333;
-            line-height: 1.6;
-        }
-        .container {
-            max-width: 900px;
-            margin: auto;
-            background: #fff;
-            padding: 20px 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        h1, h2, h3 {
-            text-align: center;
-            color: #2c3e50;
-        }
-        #log-input {
-            width: 100%;
-            height: 200px;
-            padding: 10px;
-            font-family: monospace;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-            margin-bottom: 10px;
-            resize: vertical;
-        }
-        button {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            background-color: #3498db;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            margin-bottom: 10px;
-        }
-        button:hover {
-            background-color: #2980b9;
-        }
-        .error-message {
-            color: #e74c3c;
-            text-align: center;
-            margin-top: 10px;
-        }
-        .exercise-history {
-            margin-top: 40px;
-        }
-        .exercise-table-container {
-            margin-top: 20px;
-            overflow-x: auto;
-        }
-        .exercise-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        .exercise-table th, .exercise-table td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: left;
-            font-size: 14px;
-            white-space: nowrap;
-        }
-        .exercise-table th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-        /* Page navigation styles */
-        .page {
-            display: none;
-        }
-        .page.active {
-            display: block;
-        }
-        .nav-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .nav-buttons button {
-            flex: 1;
-        }
-        #view-history-btn {
-            background-color: #27ae60;
-        }
-        #view-history-btn:hover {
-            background-color: #229954;
-        }
-        #back-to-input-btn {
-            background-color: #f39c12;
-        }
-        #back-to-input-btn:hover {
-            background-color: #e67e22;
-        }
-        .warmup {
-            font-style: italic;
-            color: #999;
-        }
-        /* Tabs styles */
-        .tab-buttons {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .tab-button {
-            background-color: #ecf0f1;
-            color: #34495e;
-            border: 1px solid #bdc3c7;
-            border-bottom: none;
-            padding: 10px 15px;
-            cursor: pointer;
-            border-radius: 5px 5px 0 0;
-            transition: background-color 0.3s ease;
-        }
-        .tab-button.active {
-            background-color: #fff;
-            font-weight: bold;
-            border-color: #3498db;
-        }
-        .tab-button:hover {
-            background-color: #dce1e3;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workout Logger</title>
+  <style>
+    body { font-family: sans-serif; background:#f4f7f6; margin:0; padding:20px; }
+    .container { max-width: 900px; margin:auto; background:#fff; padding:20px 30px; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.1); }
+    h1,h2,h3 { text-align:center; color:#2c3e50; }
+    input, textarea { width:100%; margin-bottom:10px; padding:10px; border:1px solid #ccc; border-radius:4px; }
+    button { padding:10px 15px; border:none; border-radius:4px; cursor:pointer; }
+    #signup-btn,#login-btn { background:#3498db; color:white; margin-right:5px; }
+    #logout-btn { background:#e74c3c; color:white; float:right; }
+    #share-btn { background:#27ae60; color:white; margin-top:15px; }
+    .page { display:none; }
+    .page.active { display:block; }
+    .tab-buttons { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:20px; }
+    .tab-button { background:#ecf0f1; border:1px solid #bdc3c7; padding:8px 12px; cursor:pointer; border-radius:5px 5px 0 0; }
+    .tab-button.active { background:#fff; font-weight:bold; border-color:#3498db; }
+    .tab-content { display:none; }
+    .tab-content.active { display:block; }
+    .exercise-table { width:100%; border-collapse:collapse; margin-top:10px; }
+    .exercise-table th,.exercise-table td { border:1px solid #ddd; padding:8px; font-size:14px; }
+    .exercise-table th { background:#f2f2f2; }
+    .error-message { color:red; text-align:center; margin-top:10px; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        
-        <div id="input-page" class="page active">
-            <h1>Workout Logger</h1>
-            <p>Paste your Hevy workout log below.</p>
-            <textarea id="log-input" placeholder="Paste your workout log here..."></textarea>
-            <button onclick="parseAndLogWorkout()">Log Workout</button>
-            <button id="view-history-btn">View History</button>
-            <div id="error-message" class="error-message"></div>
-        </div>
+  <div class="container">
 
-        <div id="output-page" class="page">
-            <div class="nav-buttons">
-                <button id="back-to-input-btn">Back to Input</button>
-            </div>
-            
-            <div id="tab-buttons-container" class="tab-buttons"></div>
-
-            <div id="tab-contents-container">
-                <p id="no-history-message" style="text-align: center; color: #777; margin-top: 50px;">No workout history found. Log your first workout!</p>
-            </div>
-        </div>
-
+    <!-- Auth Section -->
+    <div id="auth-section">
+      <h2>Login / Signup</h2>
+      <input type="email" id="email" placeholder="Email">
+      <input type="password" id="password" placeholder="Password">
+      <button id="signup-btn">Sign Up</button>
+      <button id="login-btn">Log In</button>
+      <p id="auth-error" style="color:red;"></p>
     </div>
 
-    <script>
-        let inputPage, outputPage, logInput, errorMessageDiv, viewHistoryBtn, backToInputBtn, tabsContainer, contentsContainer, noHistoryMessage;
+    <!-- App Section -->
+    <div id="app-section" style="display:none;">
+      <button id="logout-btn">Log Out</button>
 
-        document.addEventListener('DOMContentLoaded', () => {
-            inputPage = document.getElementById('input-page');
-            outputPage = document.getElementById('output-page');
-            logInput = document.getElementById('log-input');
-            errorMessageDiv = document.getElementById('error-message');
-            viewHistoryBtn = document.getElementById('view-history-btn');
-            backToInputBtn = document.getElementById('back-to-input-btn');
-            tabsContainer = document.getElementById('tab-buttons-container');
-            contentsContainer = document.getElementById('tab-contents-container');
-            noHistoryMessage = document.getElementById('no-history-message');
+      <div id="input-page" class="page active">
+        <h1>Workout Logger</h1>
+        <textarea id="log-input" placeholder="Paste your workout log here..."></textarea>
+        <button id="log-btn">Log Workout</button>
+        <button id="view-history-btn">View History</button>
+        <button id="share-btn">Share Public Link</button>
+        <div id="share-link" style="margin-top:10px; color:#27ae60;"></div>
+        <div id="error-message" class="error-message"></div>
+      </div>
 
-            viewHistoryBtn.addEventListener('click', () => showPage('output-page'));
-            backToInputBtn.addEventListener('click', () => showPage('input-page'));
+      <div id="output-page" class="page">
+        <div class="nav-buttons">
+          <button id="back-to-input-btn">Back to Input</button>
+        </div>
+        <div id="tab-buttons-container" class="tab-buttons"></div>
+        <div id="tab-contents-container"></div>
+        <p id="no-history-message" style="text-align:center; color:#777; margin-top:20px;">
+          No workout history found. Log your first workout!
+        </p>
+      </div>
+    </div>
+  </div>
 
-            if (localStorage.getItem('workoutLogs')) {
-                showPage('output-page');
-            } else {
-                showPage('input-page');
-            }
-        });
+  <!-- Firebase Scripts -->
+  <script type="module">
+    import { auth, db } from './firebase-init.js';
+    import { 
+      createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged 
+    } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
+    import { 
+      collection, addDoc, getDocs, doc, setDoc 
+    } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
-        function showPage(pageId) {
-            const pages = document.querySelectorAll('.page');
-            pages.forEach(page => page.classList.remove('active'));
-            document.getElementById(pageId).classList.add('active');
-            if (pageId === 'output-page') {
-                renderHistory();
-            }
+    // UI refs
+    const authSection = document.getElementById('auth-section');
+    const appSection = document.getElementById('app-section');
+    const authError = document.getElementById('auth-error');
+    const logInput = document.getElementById('log-input');
+    const errorMessageDiv = document.getElementById('error-message');
+    const tabsContainer = document.getElementById('tab-buttons-container');
+    const contentsContainer = document.getElementById('tab-contents-container');
+    const noHistoryMessage = document.getElementById('no-history-message');
+
+    // Auth handlers
+    document.getElementById('signup-btn').onclick = async () => {
+      const email = email.value, password = password.value;
+      try { await createUserWithEmailAndPassword(auth, email, password); }
+      catch (err) { authError.textContent = err.message; }
+    };
+    document.getElementById('login-btn').onclick = async () => {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      try { await signInWithEmailAndPassword(auth, email, password); }
+      catch (err) { authError.textContent = err.message; }
+    };
+    document.getElementById('logout-btn').onclick = () => signOut(auth);
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) { authSection.style.display = 'none'; appSection.style.display = 'block'; }
+      else { authSection.style.display = 'block'; appSection.style.display = 'none'; }
+    });
+
+    // Page switching
+    document.getElementById('view-history-btn').onclick = () => showPage('output-page');
+    document.getElementById('back-to-input-btn').onclick = () => showPage('input-page');
+
+    function showPage(pageId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(pageId).classList.add('active');
+      if (pageId === 'output-page') renderHistory();
+    }
+
+    // Workout logging
+    document.getElementById('log-btn').onclick = async () => {
+      const logText = logInput.value.trim();
+      errorMessageDiv.textContent = '';
+      if (!logText) { errorMessageDiv.textContent = "Please paste a workout log."; return; }
+      try {
+        const workout = parseLogText(logText);
+        await addDoc(collection(db, "users", auth.currentUser.uid, "workouts"), workout);
+        logInput.value = '';
+        showPage('output-page');
+      } catch (e) {
+        errorMessageDiv.textContent = "Error parsing log: " + e.message;
+      }
+    };
+
+    function parseLogText(text) {
+      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+      const workout = { type:"", date:"", exercises:[] };
+      let currentExercise=null, state="FIND_TYPE";
+      for (const line of lines) {
+        if (state==="FIND_TYPE") {
+          const m=line.match(/^(Full body \d|Cardio|Upper Body|Lower Body)$/i);
+          if (m){ workout.type=m[1]; state="FIND_DATE"; continue; }
         }
-
-        function parseAndLogWorkout() {
-            const logText = logInput.value.trim();
-            errorMessageDiv.textContent = '';
-
-            if (!logText) {
-                errorMessageDiv.textContent = 'Please paste your workout log.';
-                return;
-            }
-
-            try {
-                const workoutData = parseLogText(logText);
-                saveWorkout(workoutData);
-                logInput.value = '';
-                showPage('output-page');
-            } catch (e) {
-                errorMessageDiv.textContent = `Error: Could not parse log. Please check the format. Details: ${e.message}`;
-                console.error(e);
-            }
+        if (state==="FIND_DATE") {
+          const m=line.match(/^(.*?)\s+at\s+.*$/i);
+          if (m){ workout.date=m[1]; state="PARSE_EXERCISES"; continue; }
         }
-
-        function parseLogText(text) {
-            const lines = text.split('\n').map(line => line.trim()).filter(line => line);
-            if (lines.length === 0) {
-                throw new Error("Empty log provided.");
-            }
-
-            const workout = {
-                type: '',
-                date: '',
-                exercises: []
-            };
-
-            let currentExercise = null;
-            let state = 'FIND_TYPE';
-
-            for (const line of lines) {
-                if (state === 'FIND_TYPE') {
-                    const workoutTypeMatch = line.match(/^(Full body \d|Cardio|Upper Body|Lower Body)$/i);
-                    if (workoutTypeMatch) {
-                        workout.type = workoutTypeMatch[1];
-                        state = 'FIND_DATE';
-                        continue;
-                    }
-                }
-
-                if (state === 'FIND_DATE') {
-                    const dateMatch = line.match(/^(.*?)\s+at\s+.*$/i);
-                    if (dateMatch) {
-                        workout.date = dateMatch[1];
-                        state = 'PARSE_EXERCISES';
-                        continue;
-                    }
-                }
-
-                if (state === 'PARSE_EXERCISES') {
-                    const exerciseMatch = line.match(/^([A-Za-z\s]+?)(?:\s*\((.*?)\))?$/);
-                    if (exerciseMatch) {
-                        if (currentExercise) {
-                            workout.exercises.push(currentExercise);
-                        }
-                        currentExercise = {
-                            name: exerciseMatch[1].trim(),
-                            details: exerciseMatch[2] ? exerciseMatch[2].trim() : '',
-                            sets: []
-                        };
-                        continue;
-                    }
-                    
-                    const setMatch = line.match(/^Set \d+:\s*(.*)$/);
-                    if (setMatch && currentExercise) {
-                        const setDetails = setMatch[1];
-                        const set = { isWarmup: setDetails.includes('[Warm-up]') };
-                        
-                        const weightRepsMatch = setDetails.match(/(\d+)\s*(?:lbs|kg|g)?\s*x\s*(\d+)/i);
-                        if (weightRepsMatch) {
-                            set.load = parseFloat(weightRepsMatch[1]);
-                            set.reps = parseInt(weightRepsMatch[2]);
-                        } else {
-                            set.duration = setDetails;
-                        }
-                        currentExercise.sets.push(set);
-                        continue;
-                    }
-                }
-            }
-
-            if (currentExercise) {
-                workout.exercises.push(currentExercise);
-            }
-            
-            if (!workout.date || workout.exercises.length === 0) {
-                throw new Error("Could not parse workout data.");
-            }
-
-            return workout;
+        if (state==="PARSE_EXERCISES") {
+          const ex=line.match(/^([A-Za-z\s]+?)(?:\s*\((.*?)\))?$/);
+          if (ex){ if(currentExercise) workout.exercises.push(currentExercise);
+            currentExercise={name:ex[1].trim(), details:ex[2]||"", sets:[]}; continue; }
+          const set=line.match(/^Set \d+:\s*(.*)$/);
+          if (set && currentExercise){
+            const d=set[1]; const s={isWarmup:d.includes("[Warm-up]")};
+            const wr=d.match(/(\d+)\s*(?:lbs|kg)?\s*x\s*(\d+)/i);
+            if(wr){ s.load=parseFloat(wr[1]); s.reps=parseInt(wr[2]); } else { s.duration=d; }
+            currentExercise.sets.push(s);
+          }
         }
+      }
+      if (currentExercise) workout.exercises.push(currentExercise);
+      if (!workout.date || workout.exercises.length===0) throw new Error("Could not parse log");
+      return workout;
+    }
 
-        function saveWorkout(workout) {
-            let workouts = JSON.parse(localStorage.getItem('workoutLogs') || '[]');
-            const existingIndex = workouts.findIndex(w => w.date === workout.date);
-
-            if (existingIndex !== -1) {
-                workouts[existingIndex] = workout;
-            } else {
-                workouts.push(workout);
+    async function renderHistory() {
+      tabsContainer.innerHTML=""; contentsContainer.innerHTML="";
+      const snap=await getDocs(collection(db,"users",auth.currentUser.uid,"workouts"));
+      if (snap.empty){ noHistoryMessage.style.display="block"; return; }
+      noHistoryMessage.style.display="none";
+      const workoutsByType={};
+      snap.forEach(doc=>{ const w=doc.data(); (workoutsByType[w.type]??=[]).push(w); });
+      let first=true;
+      Object.entries(workoutsByType).forEach(([type,workouts])=>{
+        const btn=document.createElement('button');
+        btn.textContent=type; btn.classList.add('tab-button'); tabsContainer.appendChild(btn);
+        const div=document.createElement('div'); div.classList.add('tab-content'); contentsContainer.appendChild(div);
+        let html=""; const exercises={};
+        workouts.forEach(w=>w.exercises.forEach(ex=>{
+          (exercises[ex.name]??=[]).push({date:w.date, sets:ex.sets});
+        }));
+        for(const [name,hist] of Object.entries(exercises)){
+          html+=`<h3>${name}</h3><table class="exercise-table"><thead><tr><th>#</th><th>Date</th>`;
+          for(let i=1;i<=5;i++){ html+=`<th colspan="2">Set ${i}</th>`; }
+          html+=`<th>Volume</th></tr><tr><th></th><th></th>`;
+          for(let i=1;i<=5;i++){ html+=`<th>Load</th><th>Reps</th>`; }
+          html+=`<th>(lbs)</th></tr></thead><tbody>`;
+          hist.forEach((h,i)=>{
+            let vol=0; html+=`<tr><td>${i+1}</td><td>${h.date}</td>`;
+            for(let j=0;j<5;j++){ const s=h.sets[j];
+              if(s){ if(s.duration){ html+=`<td colspan="2">${s.duration}</td>`; }
+                else{ if(!s.isWarmup) vol+=s.load*s.reps;
+                  const wu=s.isWarmup?" (Warm-up)":""; html+=`<td>${s.load??"-"}</td><td>${s.reps??"-"}${wu}</td>`; }}
+              else html+=`<td>-</td><td>-</td>`;
             }
-
-            localStorage.setItem('workoutLogs', JSON.stringify(workouts));
+            html+=`<td>${vol||"-"}</td></tr>`;
+          });
+          html+="</tbody></table>";
         }
+        div.innerHTML=html;
+        btn.onclick=()=>{ document.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+          btn.classList.add('active'); div.classList.add('active'); };
+        if(first){ btn.classList.add('active'); div.classList.add('active'); first=false; }
+      });
+    }
 
-        function renderHistory() {
-            const workouts = JSON.parse(localStorage.getItem('workoutLogs') || '[]');
-            
-            tabsContainer.innerHTML = '';
-            contentsContainer.innerHTML = '';
+    // Public link sharing
+    document.getElementById('share-btn').onclick = async () => {
+      const uid=auth.currentUser.uid;
+      await setDoc(doc(db,"publicLinks",uid),{ created:new Date() });
+      const link=`${window.location.origin}${window.location.pathname}?uid=${uid}`;
+      document.getElementById('share-link').innerText="Shareable link: "+link;
+    };
 
-            if (workouts.length === 0) {
-                noHistoryMessage.style.display = 'block';
-                return;
-            } else {
-                noHistoryMessage.style.display = 'none';
+    // Handle public view
+    const urlParams=new URLSearchParams(window.location.search);
+    if(urlParams.has("uid")){
+      const uid=urlParams.get("uid");
+      authSection.style.display="none"; appSection.style.display="block";
+      document.getElementById("logout-btn").style.display="none";
+      document.getElementById("input-page").style.display="none";
+      showPage("output-page");
+      renderHistoryPublic(uid);
+    }
+
+    async function renderHistoryPublic(uid){
+      tabsContainer.innerHTML=""; contentsContainer.innerHTML="";
+      const snap=await getDocs(collection(db,"users",uid,"workouts"));
+      if (snap.empty){ noHistoryMessage.style.display="block"; return; }
+      noHistoryMessage.style.display="none";
+      const workoutsByType={};
+      snap.forEach(doc=>{ const w=doc.data(); (workoutsByType[w.type]??=[]).push(w); });
+      let first=true;
+      Object.entries(workoutsByType).forEach(([type,workouts])=>{
+        const btn=document.createElement('button'); btn.textContent=type; btn.classList.add('tab-button'); tabsContainer.appendChild(btn);
+        const div=document.createElement('div'); div.classList.add('tab-content'); contentsContainer.appendChild(div);
+        let html=""; const exercises={};
+        workouts.forEach(w=>w.exercises.forEach(ex=>{
+          (exercises[ex.name]??=[]).push({date:w.date,sets:ex.sets});
+        }));
+        for(const [name,hist] of Object.entries(exercises)){
+          html+=`<h3>${name}</h3><table class="exercise-table"><thead><tr><th>#</th><th>Date</th>`;
+          for(let i=1;i<=5;i++){ html+=`<th colspan="2">Set ${i}</th>`; }
+          html+=`<th>Volume</th></tr><tr><th></th><th></th>`;
+          for(let i=1;i<=5;i++){ html+=`<th>Load</th><th>Reps</th>`; }
+          html+=`<th>(lbs)</th></tr></thead><tbody>`;
+          hist.forEach((h,i)=>{
+            let vol=0; html+=`<tr><td>${i+1}</td><td>${h.date}</td>`;
+            for(let j=0;j<5;j++){ const s=h.sets[j];
+              if(s){ if(s.duration){ html+=`<td colspan="2">${s.duration}</td>`; }
+                else{ if(!s.isWarmup) vol+=s.load*s.reps;
+                  const wu=s.isWarmup?" (Warm-up)":""; html+=`<td>${s.load??"-"}</td><td>${s.reps??"-"}${wu}</td>`; }}
+              else html+=`<td>-</td><td>-</td>`;
             }
-
-            const workoutTypeMap = new Map();
-            workouts.forEach(workout => {
-                const type = workout.type;
-                if (!workoutTypeMap.has(type)) {
-                    workoutTypeMap.set(type, []);
-                }
-                workoutTypeMap.get(type).push(workout);
-            });
-
-            let isFirstTab = true;
-            workoutTypeMap.forEach((workoutsForType, workoutType) => {
-                const button = document.createElement('button');
-                button.textContent = workoutType;
-                button.classList.add('tab-button');
-                tabsContainer.appendChild(button);
-
-                const contentDiv = document.createElement('div');
-                contentDiv.classList.add('tab-content');
-                contentsContainer.appendChild(contentDiv);
-
-                const exerciseMap = new Map();
-                workoutsForType.forEach(workout => {
-                    const date = workout.date;
-                    workout.exercises.forEach(exercise => {
-                        const name = exercise.name;
-                        if (!exerciseMap.has(name)) {
-                            exerciseMap.set(name, []);
-                        }
-                        exerciseMap.get(name).push({
-                            date: date,
-                            sets: exercise.sets
-                        });
-                    });
-                });
-
-                let contentHTML = '';
-                exerciseMap.forEach((history, exerciseName) => {
-                    contentHTML += `<div class="exercise-table-container">`;
-                    contentHTML += `<h3 style="text-align: left;">${exerciseName}</h3>`;
-                    contentHTML += `<table class="exercise-table">`;
-                    contentHTML += `<thead><tr><th>Sr. No.</th><th>Date</th>`;
-                    for (let i = 1; i <= 5; i++) {
-                        contentHTML += `<th colspan="2">Set ${i}</th>`;
-                    }
-                    contentHTML += `<th>Volume</th></tr>`;
-                    contentHTML += `<tr><th></th><th></th>`;
-                    for (let i = 1; i <= 5; i++) {
-                        contentHTML += `<th>Load</th><th>Reps</th>`;
-                    }
-                    contentHTML += `<th>(lbs)</th></tr></thead>`;
-                    contentHTML += `<tbody>`;
-
-                    history.forEach((workout, index) => {
-                        let totalVolume = 0;
-                        contentHTML += `<tr>`;
-                        contentHTML += `<td>${index + 1}</td>`;
-                        contentHTML += `<td>${workout.date}</td>`;
-
-                        for (let i = 0; i < 5; i++) {
-                            const set = workout.sets[i];
-                            if (set) {
-                                if (set.duration) {
-                                    contentHTML += `<td colspan="2">${set.duration}</td>`;
-                                } else {
-                                    if (!set.isWarmup) {
-                                        totalVolume += set.load * set.reps;
-                                    }
-                                    const warmupText = set.isWarmup ? ' (Warm-up)' : '';
-                                    contentHTML += `<td>${set.load !== null ? set.load + ' lbs' : '-'}</td>`;
-                                    contentHTML += `<td>${set.reps !== null ? set.reps : '-'} ${warmupText}</td>`;
-                                }
-                            } else {
-                                contentHTML += `<td>-</td><td>-</td>`;
-                            }
-                        }
-                        contentHTML += `<td>${totalVolume > 0 ? totalVolume : '-'}</td>`;
-                        contentHTML += `</tr>`;
-                    });
-                    contentHTML += `</tbody></table></div>`;
-                });
-                contentDiv.innerHTML = contentHTML;
-                
-                button.addEventListener('click', () => {
-                    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(cont => cont.classList.remove('active'));
-                    button.classList.add('active');
-                    contentDiv.classList.add('active');
-                });
-
-                if (isFirstTab) {
-                    button.classList.add('active');
-                    contentDiv.classList.add('active');
-                    isFirstTab = false;
-                }
-            });
+            html+=`<td>${vol||"-"}</td></tr>`;
+          });
+          html+="</tbody></table>";
         }
-    </script>
+        div.innerHTML=html;
+        btn.onclick=()=>{ document.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+          btn.classList.add('active'); div.classList.add('active'); };
+        if(first){ btn.classList.add('active'); div.classList.add('active'); first=false; }
+      });
+    }
+  </script>
 </body>
 </html>
