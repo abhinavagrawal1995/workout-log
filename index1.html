@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Workout History</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      padding: 20px;
+      background-color: #f4f7f6;
+      color: #333;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1000px;
+      margin: auto;
+      background: #fff;
+      padding: 20px 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    h1, h2, h3 { text-align: center; color: #2c3e50; }
+    .tab-buttons {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .tab-button {
+      background-color: #ecf0f1;
+      color: #34495e;
+      border: 1px solid #bdc3c7;
+      border-bottom: none;
+      padding: 10px 15px;
+      cursor: pointer;
+      border-radius: 5px 5px 0 0;
+      transition: background-color 0.3s ease;
+    }
+    .tab-button.active {
+      background-color: #fff;
+      font-weight: bold;
+      border-color: #3498db;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .exercise-table-container { margin-top: 20px; overflow-x: auto; }
+    .exercise-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    .exercise-table th, .exercise-table td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    .exercise-table th {
+      background-color: #f2f2f2;
+      font-weight: bold;
+    }
+    #loading { text-align:center; color:#555; }
+    .warmup { font-style: italic; color:#999; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Workout History</h1>
+    <p id="loading">Loading logs from <code>/workouts/</code>...</p>
+    <div id="tab-buttons-container" class="tab-buttons"></div>
+    <div id="tab-contents-container"></div>
+  </div>
+
+<script>
+async function loadWorkouts() {
+  try {
+    // Fetch directory listing (GitHub Pages serves raw folder listing if public)
+    const res = await fetch('./workouts/');
+    const html = await res.text();
+
+    // Extract .log filenames from directory listing HTML
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const links = [...doc.querySelectorAll('a')].map(a => a.getAttribute('href'));
+    const logFiles = links.filter(l => l.endsWith('.log'));
+
+    if (logFiles.length === 0) {
+      document.getElementById('loading').textContent = "No workout logs found.";
+      return [];
+    }
+
+    document.getElementById('loading').style.display = 'none';
+
+    // Load each log file
+    const workouts = [];
+    for (const file of logFiles) {
+      const txt = await fetch('./workouts/' + file).then(r => r.text());
+      try {
+        const parsed = parseLogText(txt);
+        workouts.push(parsed);
+      } catch (e) {
+        console.error("Error parsing", file, e);
+      }
+    }
+    return workouts;
+  } catch (e) {
+    document.getElementById('loading').textContent = "Error loading workouts: " + e.message;
+    return [];
+  }
+}
+
+function parseLogText(text) {
+  const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+  if (lines.length === 0) throw new Error("Empty log");
+
+  const workout = { type: '', date: '', exercises: [] };
+  let currentExercise = null;
+  let state = 'FIND_TYPE';
+
+  for (const line of lines) {
+    if (state === 'FIND_TYPE') {
+      const m = line.match(/^(Full body \d|Cardio|Upper Body|Lower Body)$/i);
+      if (m) { workout.type = m[1]; state = 'FIND_DATE'; continue; }
+    }
+    if (state === 'FIND_DATE') {
+      const m = line.match(/^(.*?)\s+at\s+.*$/i);
+      if (m) { workout.date = m[1]; state = 'PARSE_EXERCISES'; continue; }
+    }
+    if (state === 'PARSE_EXERCISES') {
+      const exMatch = line.match(/^([A-Za-z\s]+?)(?:\s*\((.*?)\))?$/);
+      if (exMatch) {
+        if (currentExercise) workout.exercises.push(currentExercise);
+        currentExercise = { name: exMatch[1].trim(), details: exMatch[2]||'', sets: [] };
+        continue;
+      }
+      const setMatch = line.match(/^Set \d+:\s*(.*)$/);
+      if (setMatch && currentExercise) {
+        const det = setMatch[1];
+        const set = { isWarmup: det.includes('[Warm-up]') };
+        const wr = det.match(/(\d+)\s*(?:lbs|kg|g)?\s*x\s*(\d+)/i);
+        if (wr) {
+          set.load = parseFloat(wr[1]);
+          set.reps = parseInt(wr[2]);
+        } else {
+          set.duration = det;
+        }
+        currentExercise.sets.push(set);
+      }
+    }
+  }
+  if (currentExercise) workout.exercises.push(currentExercise);
+  if (!workout.date || workout.exercises.length === 0) throw new Error("Parse fail");
+  return workout;
+}
+
+function renderHistory(workouts) {
+  const tabs = document.getElementById('tab-buttons-container');
+  const contents = document.getElementById('tab-contents-container');
+  tabs.innerHTML = contents.innerHTML = '';
+
+  const map = new Map();
+  workouts.forEach(w => {
+    if (!map.has(w.type)) map.set(w.type, []);
+    map.get(w.type).push(w);
+  });
+
+  let first = true;
+  map.forEach((list, type) => {
+    const btn = document.createElement('button');
+    btn.textContent = type;
+    btn.classList.add('tab-button');
+    tabs.appendChild(btn);
+
+    const div = document.createElement('div');
+    div.classList.add('tab-content');
+    contents.appendChild(div);
+
+    const exMap = new Map();
+    list.forEach(w => {
+      w.exercises.forEach(ex => {
+        if (!exMap.has(ex.name)) exMap.set(ex.name, []);
+        exMap.get(ex.name).push({ date: w.date, sets: ex.sets });
+      });
+    });
+
+    let html = '';
+    exMap.forEach((hist, name) => {
+      html += `<div class="exercise-table-container"><h3>${name}</h3><table class="exercise-table">`;
+      html += `<thead><tr><th>#</th><th>Date</th>`;
+      for (let i=1;i<=5;i++) html += `<th colspan="2">Set ${i}</th>`;
+      html += `<th>Volume</th></tr><tr><th></th><th></th>`;
+      for (let i=1;i<=5;i++) html += `<th>Load</th><th>Reps</th>`;
+      html += `<th>(lbs)</th></tr></thead><tbody>`;
+      hist.forEach((wo,i) => {
+        let vol=0;
+        html += `<tr><td>${i+1}</td><td>${wo.date}</td>`;
+        for (let j=0;j<5;j++) {
+          const s=wo.sets[j];
+          if (s) {
+            if (s.duration) {
+              html += `<td colspan="2">${s.duration}</td>`;
+            } else {
+              if (!s.isWarmup) vol += (s.load||0)*(s.reps||0);
+              const wu = s.isWarmup ? ' (Warm-up)' : '';
+              html += `<td>${s.load||'-'}</td><td>${s.reps||'-'}${wu}</td>`;
+            }
+          } else html += `<td>-</td><td>-</td>`;
+        }
+        html += `<td>${vol||'-'}</td></tr>`;
+      });
+      html += `</tbody></table></div>`;
+    });
+    div.innerHTML = html;
+
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      div.classList.add('active');
+    });
+
+    if (first) { btn.classList.add('active'); div.classList.add('active'); first=false; }
+  });
+}
+
+loadWorkouts().then(renderHistory);
+</script>
+</body>
+</html>
